@@ -25,6 +25,7 @@ import {
   initialActivityLogs,
   initialUsers,
 } from '../data/initialData';
+import { apiService } from '../services/apiService';
 
 export type PublicPage =
   | 'home'
@@ -216,6 +217,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     localStorage.setItem('nfi_settings', JSON.stringify(settings));
   }, [settings]);
+
+  // Sync with Backend MySQL REST API (Source of Truth)
+  useEffect(() => {
+    const syncWithMySQLDatabase = async () => {
+      const isOnline = await apiService.checkHealth();
+      if (isOnline) {
+        console.log('🔗 Terhubung ke MySQL Laravel Backend API (http://localhost:8000/api)');
+        const remotePortfolio = await apiService.getPortfolio();
+        if (remotePortfolio) setPortfolio(remotePortfolio);
+
+        const remoteNews = await apiService.getNews();
+        if (remoteNews) setNews(remoteNews);
+
+        const remoteServices = await apiService.getServices();
+        if (remoteServices) setServices(remoteServices);
+
+        const remoteTeam = await apiService.getTeam();
+        if (remoteTeam) setTeam(remoteTeam);
+      }
+    };
+    syncWithMySQLDatabase();
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('nfi_portfolio', JSON.stringify(portfolio));
@@ -512,6 +535,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       createdAt: new Date().toISOString(),
     };
     setInquiries((prev) => [newInq, ...prev]);
+
+    // Kirim data secara asinkron ke MySQL API jika online
+    apiService.createInquiry(inquiryData);
   };
 
   const updateInquiryStatus = (id: string, status: ContactInquiry['status']) => {

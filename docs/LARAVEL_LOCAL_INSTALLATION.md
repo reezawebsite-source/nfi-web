@@ -27,7 +27,7 @@ Salin berkas yang disiapkan oleh sistem NFI ini ke folder proyek Laravel Anda:
 2. Copy `laravel-backend/database/migrations/2026_01_01_000000_create_nfi_tables.php` -> `database/migrations/`
 
 ### Langkah 3: Konfigurasi File `.env` Database Lokal
-Edit file `.env` di direktori utama Laravel Anda:
+Edit file `.env` di direktori utama Laravel Anda (atau copy dari file `laravel-backend/.env.example`):
 ```env
 APP_NAME="Nusantara Film Indonesia Backend"
 APP_ENV=local
@@ -36,11 +36,11 @@ APP_DEBUG=true
 APP_URL=http://localhost:8000
 
 DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
+DB_HOST=192.168.0.132
 DB_PORT=3306
 DB_DATABASE=nfi_production_db
-DB_USERNAME=root
-DB_PASSWORD=
+DB_USERNAME=simrs
+DB_PASSWORD=admin123
 
 # Mandatory Domain Restricted Auth
 NFI_MANDATORY_DOMAIN=nfi.co.id
@@ -58,6 +58,15 @@ php artisan vendor:publish --provider="Laravel\Sanctum\SanctumServiceProvider"
 ```
 
 ### Langkah 5: Jalankan Migrasi Database
+
+> 💡 **Solusi Error `Table 'personal_access_tokens' already exists` / Duplicate Migration:**
+> Pada Laravel 11, tabel `personal_access_tokens` sudah disediakan secara default. Jika Anda menjalankan `vendor:publish` Sanctum, file migrasi ganda mungkin terbuat di folder `database/migrations/`.
+> 1. Buka folder `database/migrations/` di proyek Laravel Anda.
+> 2. Jika terdapat 2 file migrasi `create_personal_access_tokens_table`, **hapus salah satu file yang duplikat**.
+> 3. Jalankan perintah pembersihan database:
+> ```bash
+> php artisan migrate:fresh
+> ```
 
 > 💡 **Solusi Error `SQLSTATE[42000]: Specified key was too long; max key length is 767 bytes` (XAMPP / MariaDB):**
 > Jika Anda mengalami error ini saat menjalankan `php artisan migrate`, buka file `app/Providers/AppServiceProvider.php` di proyek Laravel Anda dan tambahkan pengaturan default string length berikut:
@@ -87,20 +96,23 @@ Pastikan database `nfi_production_db` sudah dibuat di MySQL/PHPMyAdmin, lalu jal
 php artisan migrate
 ```
 
-### Langkah 6: Seeding Data Awal (Super Admin @nfi.co.id)
-Tambahkan Super Admin default pada `database/seeders/DatabaseSeeder.php`:
-```php
-\App\Models\User::factory()->create([
-    'name' => 'Super Admin NFI',
-    'email' => 'admin@nfi.co.id',
-    'password' => bcrypt('admin123'),
-    'role' => 'Super Admin',
-]);
-```
-Jalankan seeder:
+### Langkah 6: Seeding / Import Seluruh Data Awal ke MySQL
+
+Agar **seluruh data di Frontend dan Backend berasal 100% dari MySQL** (bukan data dummy lokal `initialData.ts`), salin file seeder dari proyek ini:
+1. Copy file `laravel-backend/database/seeders/DatabaseSeeder.php` -> `database/seeders/DatabaseSeeder.php`
+
+Lalu jalankan perintah seeding:
 ```bash
 php artisan db:seed
 ```
+
+> 💡 **Cara Alternatif (Import File SQL Langsung via phpMyAdmin / MySQL GUI):**
+> Jika Anda lebih suka meng-import file SQL secara langsung:
+> 1. Buka phpMyAdmin / MySQL Workbench.
+> 2. Pilih database `nfi_production_db`.
+> 3. Import file `laravel-backend/database/nfi_initial_data.sql`.
+> 
+> Seluruh tabel `users`, `portfolios`, `news_posts`, `services`, `team_members`, dan `inquiries` akan terisi otomatis dengan data awal resmi NFI. Frontend React akan secara otomatis membaca dan menampilkan data langsung dari MySQL database tersebut!
 
 ### Langkah 7: Jalankan Server Lokal Laravel
 ```bash
