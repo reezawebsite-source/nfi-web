@@ -58,6 +58,30 @@ php artisan vendor:publish --provider="Laravel\Sanctum\SanctumServiceProvider"
 ```
 
 ### Langkah 5: Jalankan Migrasi Database
+
+> 💡 **Solusi Error `SQLSTATE[42000]: Specified key was too long; max key length is 767 bytes` (XAMPP / MariaDB):**
+> Jika Anda mengalami error ini saat menjalankan `php artisan migrate`, buka file `app/Providers/AppServiceProvider.php` di proyek Laravel Anda dan tambahkan pengaturan default string length berikut:
+>
+> ```php
+> namespace App\Providers;
+
+use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Schema; // 1. Tambahkan ini
+
+class AppServiceProvider extends ServiceProvider
+{
+    public function boot(): void
+    {
+        Schema::defaultStringLength(191); // 2. Tambahkan baris ini
+    }
+}
+> ```
+>
+> Setelah menyimpan `AppServiceProvider.php`, jalankan perintah reset & migrasi ulang:
+> ```bash
+> php artisan migrate:fresh
+> ```
+
 Pastikan database `nfi_production_db` sudah dibuat di MySQL/PHPMyAdmin, lalu jalankan:
 ```bash
 php artisan migrate

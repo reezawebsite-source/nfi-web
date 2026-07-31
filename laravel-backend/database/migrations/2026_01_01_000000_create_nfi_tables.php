@@ -23,8 +23,8 @@ return new class extends Migration
             $table->string('thumbnail');
             $table->string('video_url')->nullable();
             $table->text('synopsis');
-            $table->json('credits'); // director, producer, dop, editor
-            $table->json('awards')->nullable();
+            $table->longText('credits'); // director, producer, dop, editor
+            $table->longText('awards')->nullable();
             $table->boolean('featured')->default(false);
             $table->string('status')->default('Published');
             $table->timestamps();
@@ -41,7 +41,7 @@ return new class extends Migration
             $table->string('featured_image');
             $table->text('excerpt');
             $table->longText('content');
-            $table->json('tags')->nullable();
+            $table->longText('tags')->nullable();
             $table->string('seo_title')->nullable();
             $table->text('seo_description')->nullable();
             $table->timestamp('published_at')->useCurrent();
@@ -55,7 +55,7 @@ return new class extends Migration
             $table->string('title');
             $table->text('short_description');
             $table->longText('full_description');
-            $table->json('deliverables');
+            $table->longText('deliverables');
             $table->string('sample_image');
             $table->string('icon')->default('Film');
             $table->timestamps();
@@ -71,7 +71,7 @@ return new class extends Migration
             $table->text('biography');
             $table->string('photo');
             $table->integer('order')->default(1);
-            $table->json('socials')->nullable(); // email, instagram, linkedin
+            $table->longText('socials')->nullable(); // email, instagram, linkedin
             $table->timestamps();
         });
 
