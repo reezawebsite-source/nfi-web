@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { ServiceOffering } from '../../types';
-import { Edit2, Trash2, Plus, Layers, X, CheckCircle2 } from 'lucide-react';
+import { Edit2, Trash2, Plus, Layers, X, Upload } from 'lucide-react';
 
 export const ServicesCMS: React.FC = () => {
   const { services = [], addServiceOffering, updateServiceOffering, deleteServiceOffering } = useApp();
@@ -77,12 +77,12 @@ export const ServicesCMS: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-white/10 pb-6 gap-4">
         <div>
-          <h1 className="text-2xl font-bold font-display uppercase text-white flex items-center">
-            <Layers className="w-6 h-6 mr-3 text-[#C5A059]" />
-            Kelola Layanan Sinematik NFI (CMS)
+          <h1 className="text-2xl font-bold font-display uppercase text-white flex items-center space-x-2">
+            <Layers className="w-6 h-6 text-[#C5A059]" />
+            <span>Kelola Layanan Sinematik NFI (CMS)</span>
           </h1>
           <p className="text-xs text-gray-400 font-mono mt-1">
-            Tambah, perbarui, atau hapus jenis paket layanan sinematografi & fasilitas produksi.
+            Tambah, perbarui, atau hapus jenis paket layanan sinematografi & fasilitas produksi (Database MySQL Active).
           </p>
         </div>
 
@@ -109,7 +109,7 @@ export const ServicesCMS: React.FC = () => {
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={() => startEdit(serv)}
-                    className="p-1.5 bg-amber-500/20 text-amber-300 rounded hover:bg-amber-500/30 text-xs font-mono flex items-center space-x-1 cursor-pointer"
+                    className="p-1.5 bg-amber-500/20 text-amber-300 rounded hover:bg-amber-500/30 text-xs font-mono flex items-center space-x-1 cursor-pointer transition-colors"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
                     <span>Edit</span>
@@ -120,7 +120,7 @@ export const ServicesCMS: React.FC = () => {
                         deleteServiceOffering(serv.id);
                       }
                     }}
-                    className="p-1.5 bg-red-500/20 text-red-300 rounded hover:bg-red-500/30 text-xs font-mono flex items-center space-x-1 cursor-pointer"
+                    className="p-1.5 bg-red-500/20 text-red-300 rounded hover:bg-red-500/30 text-xs font-mono flex items-center space-x-1 cursor-pointer transition-colors"
                     title="Hapus Layanan"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -144,17 +144,18 @@ export const ServicesCMS: React.FC = () => {
       {/* Edit or Add Service Modal */}
       {(editingService || isAdding) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
-          <div className="w-full max-w-xl bg-[#121214] border border-white/15 rounded-2xl p-6 space-y-4 text-white">
+          <div className="w-full max-w-xl bg-[#121214] border border-[#C5A059]/40 rounded-2xl p-6 space-y-4 text-white shadow-2xl">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <h3 className="text-lg font-bold font-display uppercase text-white">
-                {isAdding ? 'Tambah Layanan Baru' : `Edit Layanan: ${editingService?.title}`}
+              <h3 className="text-lg font-bold font-display uppercase text-white flex items-center space-x-2">
+                <Layers className="w-5 h-5 text-[#C5A059]" />
+                <span>{isAdding ? 'Tambah Layanan Baru' : `Edit Layanan: ${editingService?.title}`}</span>
               </h3>
               <button
                 onClick={() => {
                   setEditingService(null);
                   setIsAdding(false);
                 }}
-                className="text-gray-400 hover:text-white"
+                className="text-gray-400 hover:text-white cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -162,57 +163,92 @@ export const ServicesCMS: React.FC = () => {
 
             <form onSubmit={handleSave} className="space-y-3 text-xs font-mono">
               <div>
-                <label className="block text-gray-400 mb-1">Judul Layanan</label>
+                <label className="block text-gray-300 font-bold mb-1">Judul Layanan *</label>
                 <input
                   type="text"
                   required
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   placeholder="Contoh: Produksi Film Layar Lebar & Seri TV"
-                  className="w-full px-3 py-2 bg-[#18181C] border border-white/10 rounded text-white"
+                  className="w-full px-3 py-2 bg-[#18181C] border border-white/10 rounded text-white focus:border-[#C5A059] outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-gray-400 mb-1">Deskripsi Ringkas</label>
+                <label className="block text-gray-300 font-bold mb-1">Deskripsi Ringkas *</label>
                 <textarea
                   rows={2}
                   required
                   value={formData.shortDescription}
                   onChange={(e) => setFormData({ ...formData, shortDescription: e.target.value })}
-                  className="w-full px-3 py-2 bg-[#18181C] border border-white/10 rounded text-white"
+                  placeholder="Deskripsi singkat layanan..."
+                  className="w-full px-3 py-2 bg-[#18181C] border border-white/10 rounded text-white focus:border-[#C5A059] outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-gray-400 mb-1">Deskripsi Lengkap & Metodologi</label>
+                <label className="block text-gray-300 font-bold mb-1">Deskripsi Lengkap & Metodologi</label>
                 <textarea
                   rows={3}
                   value={formData.fullDescription}
                   onChange={(e) => setFormData({ ...formData, fullDescription: e.target.value })}
-                  className="w-full px-3 py-2 bg-[#18181C] border border-white/10 rounded text-white"
+                  placeholder="Prosedur kerja, standar kualitas..."
+                  className="w-full px-3 py-2 bg-[#18181C] border border-white/10 rounded text-white focus:border-[#C5A059] outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-gray-400 mb-1">Deliverables / Output (Satu per baris)</label>
+                <label className="block text-gray-300 font-bold mb-1">Deliverables / Output (Satu per baris)</label>
                 <textarea
                   rows={3}
                   value={formData.deliverablesStr}
                   onChange={(e) => setFormData({ ...formData, deliverablesStr: e.target.value })}
                   placeholder="Draft skenario&#10;Shooting master 4K RAW&#10;Color grading DaVinci"
-                  className="w-full px-3 py-2 bg-[#18181C] border border-white/10 rounded text-white"
+                  className="w-full px-3 py-2 bg-[#18181C] border border-white/10 rounded text-white focus:border-[#C5A059] outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-gray-400 mb-1">URL Gambar Sampel</label>
-                <input
-                  type="text"
-                  value={formData.sampleImage}
-                  onChange={(e) => setFormData({ ...formData, sampleImage: e.target.value })}
-                  className="w-full px-3 py-2 bg-[#18181C] border border-white/10 rounded text-white"
-                />
+                <label className="block text-gray-300 font-bold mb-1">
+                  Gambar Sampel Layanan (Pilih File Komputer atau Masukkan URL)
+                </label>
+                <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+                  <input
+                    type="text"
+                    value={formData.sampleImage}
+                    onChange={(e) => setFormData({ ...formData, sampleImage: e.target.value })}
+                    placeholder="https://... atau klik pilih file"
+                    className="flex-1 px-3 py-2 bg-[#18181C] border border-white/10 rounded text-white w-full focus:border-[#C5A059] outline-none"
+                  />
+                  <label className="px-3.5 py-2 bg-[#C5A059] hover:bg-[#DBC07D] text-black font-bold font-mono text-xs rounded cursor-pointer flex-shrink-0 flex items-center space-x-1.5 transition-colors">
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Upload File</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          const reader = new FileReader();
+                          reader.onload = (event) => {
+                            if (event.target?.result) {
+                              setFormData({ ...formData, sampleImage: event.target.result as string });
+                            }
+                          };
+                          reader.readAsDataURL(e.target.files[0]);
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+                {formData.sampleImage && (
+                  <div className="mt-2 flex items-center space-x-3 bg-black/40 p-2 rounded border border-white/10">
+                    <img src={formData.sampleImage} alt="Preview" className="w-16 h-10 object-cover rounded border border-[#C5A059]" />
+                    <span className="text-[10px] text-gray-400 font-mono">
+                      Preview Gambar (Source: {formData.sampleImage.startsWith('data:image') ? 'File Terunggah dari Komputer' : 'URL Link External'})
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="pt-3 border-t border-white/10 flex justify-end space-x-2">
@@ -222,13 +258,13 @@ export const ServicesCMS: React.FC = () => {
                     setEditingService(null);
                     setIsAdding(false);
                   }}
-                  className="px-4 py-2 bg-white/10 text-white rounded cursor-pointer"
+                  className="px-4 py-2 bg-white/10 text-white rounded cursor-pointer hover:bg-white/20 transition-colors"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-[#C5A059] text-black font-bold uppercase rounded hover:bg-[#DBC07D] cursor-pointer"
+                  className="px-5 py-2 bg-[#C5A059] text-black font-bold uppercase rounded hover:bg-[#DBC07D] cursor-pointer transition-colors"
                 >
                   {isAdding ? 'Tambah Layanan' : 'Simpan Perubahan'}
                 </button>

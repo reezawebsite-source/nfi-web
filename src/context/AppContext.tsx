@@ -72,6 +72,7 @@ interface AppContextType {
   settings: GeneralSettings;
   updateSettings: (newSettings: Partial<GeneralSettings>) => void;
   updateSiteSettings: (newSettings: Partial<GeneralSettings>) => void;
+
   portfolio: PortfolioItem[];
   addPortfolioItem: (item: Omit<PortfolioItem, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>) => void;
   updatePortfolioItem: (id: string, item: Partial<PortfolioItem>) => void;
@@ -138,7 +139,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return localStorage.getItem('nfi_admin_auth') === 'true';
   });
 
-  // Helper for safe JSON array parsing from localStorage
+  // Safe JSON array parsing helper
   const safeParseArray = <T,>(key: string, fallback: T[]): T[] => {
     try {
       const saved = localStorage.getItem(key);
@@ -218,12 +219,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem('nfi_settings', JSON.stringify(settings));
   }, [settings]);
 
-  // Sync with Backend MySQL REST API (Source of Truth)
+  // Sync with Backend MySQL REST API (Source of Truth when online)
   useEffect(() => {
     const syncWithMySQLDatabase = async () => {
       const isOnline = await apiService.checkHealth();
       if (isOnline) {
-        console.log('🔗 Terhubung ke MySQL Laravel Backend API (http://localhost:8000/api)');
+        console.log('🔗 Terhubung ke MySQL Backend API (Live Sync Active)');
         const remotePortfolio = await apiService.getPortfolio();
         if (remotePortfolio) setPortfolio(remotePortfolio);
 
@@ -235,6 +236,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         const remoteTeam = await apiService.getTeam();
         if (remoteTeam) setTeam(remoteTeam);
+
+        const remoteInquiries = await apiService.getInquiries();
+        if (remoteInquiries) setInquiries(remoteInquiries);
+
+        const remoteMedia = await apiService.getMedia();
+        if (remoteMedia) setMediaFiles(remoteMedia);
+
+        const remoteSettings = await apiService.getSettings();
+        if (remoteSettings) setSettings(remoteSettings);
+
+        const remoteUsers = await apiService.getUsers();
+        if (remoteUsers) setUsers(remoteUsers);
       }
     };
     syncWithMySQLDatabase();
@@ -299,6 +312,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const cleanInput = inputEmail.trim().toLowerCase();
     const normalizedEmail = cleanInput.includes('@') ? cleanInput : `${cleanInput}@nfi.co.id`;
 
+    // Try background auth call
+    apiService.loginAdmin(normalizedEmail, pass);
+
     // Find matching user in state
     const foundUser = users.find(
       (u) => u.email.toLowerCase() === normalizedEmail || u.email.toLowerCase() === cleanInput
@@ -357,6 +373,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return u;
       })
     );
+    apiService.updateUser(userId, data);
     logActivity(`Memperbarui profil pengguna (${data.email || userId})`, 'User Management');
   };
 
@@ -373,6 +390,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return u;
       })
     );
+    apiService.updateUser(userId, { password: newPass });
     logActivity(`Mengubah kata sandi mandiri (User ID: ${userId})`, 'User Security');
   };
 
@@ -386,6 +404,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return u;
       })
     );
+    apiService.updateUser(targetUserId, { password: newPass });
     logActivity(
       `Super Admin mereset kata sandi pengguna: ${target?.email || targetUserId}`,
       'User Security'
@@ -405,18 +424,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     setUsers((prev) => [...prev, newUser]);
+    apiService.createUser(newUser);
     logActivity(`Menambah akun pengguna baru: ${newUser.email} (${newUser.role})`, 'User Security');
   };
 
   const deleteUser = (userId: string) => {
     const target = users.find((u) => u.id === userId);
     setUsers((prev) => prev.filter((u) => u.id !== userId));
+    apiService.deleteUser(userId);
     logActivity(`Menghapus akun pengguna: ${target?.email || userId}`, 'User Security');
   };
 
   // Settings
   const updateSettings = (newSettings: Partial<GeneralSettings>) => {
-    setSettings((prev) => ({ ...prev, ...newSettings }));
+    setSettings((prev) => {
+      const updated = { ...prev, ...newSettings };
+      apiService.updateSettings(updated);
+      return updated;
+    });
     logActivity('Memperbarui Pengaturan Website', 'General Settings');
   };
 
@@ -431,6 +456,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       updatedAt: now,
     };
     setPortfolio((prev) => [newItem, ...prev]);
+    apiService.createPortfolio(newItem);
     logActivity(`Menambah Portofolio: "${newItem.title}"`, 'Portfolio CMS');
   };
 
@@ -442,11 +468,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           : item
       )
     );
+    apiService.updatePortfolio(id, itemData);
     logActivity(`Memperbarui Portofolio ID: ${id}`, 'Portfolio CMS');
   };
 
   const deletePortfolioItem = (id: string) => {
     setPortfolio((prev) => prev.filter((item) => item.id !== id));
+    apiService.deletePortfolio(id);
     logActivity(`Menghapus Portofolio ID: ${id}`, 'Portfolio CMS');
   };
 
@@ -461,6 +489,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       updatedAt: now,
     };
     setNews((prev) => [newPost, ...prev]);
+    apiService.createNews(newPost);
     logActivity(`Menerbitkan Berita: "${newPost.title}"`, 'News CMS');
   };
 
@@ -470,11 +499,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         p.id === id ? { ...p, ...postData, updatedAt: new Date().toISOString() } : p
       )
     );
+    apiService.updateNews(id, postData);
     logActivity(`Memperbarui Berita ID: ${id}`, 'News CMS');
   };
 
   const deleteNewsPost = (id: string) => {
     setNews((prev) => prev.filter((p) => p.id !== id));
+    apiService.deleteNews(id);
     logActivity(`Menghapus Berita ID: ${id}`, 'News CMS');
   };
 
@@ -483,8 +514,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const newService: ServiceOffering = {
       ...serviceData,
       id: `service-${Date.now()}`,
+      uuid: crypto.randomUUID(),
     };
     setServices((prev) => [...prev, newService]);
+    apiService.createService(newService);
     logActivity(`Menambah Layanan Baru: "${newService.title}"`, 'Services CMS');
   };
 
@@ -492,11 +525,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setServices((prev) =>
       prev.map((s) => (s.id === id ? { ...s, ...serviceData } : s))
     );
+    apiService.updateService(id, serviceData);
     logActivity(`Memperbarui Layanan ID: ${id}`, 'Services CMS');
   };
 
   const deleteServiceOffering = (id: string) => {
     setServices((prev) => prev.filter((s) => s.id !== id));
+    apiService.deleteService(id);
     logActivity(`Menghapus Layanan ID: ${id}`, 'Services CMS');
   };
 
@@ -508,6 +543,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       uuid: crypto.randomUUID(),
     };
     setTeam((prev) => [...prev, newMember]);
+    apiService.createTeamMember(newMember);
     logActivity(`Menambah Anggota Tim: "${newMember.name}"`, 'Team CMS');
   };
 
@@ -515,11 +551,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setTeam((prev) =>
       prev.map((t) => (t.id === id ? { ...t, ...memberData } : t))
     );
+    apiService.updateTeamMember(id, memberData);
     logActivity(`Memperbarui Anggota Tim ID: ${id}`, 'Team CMS');
   };
 
   const deleteTeamMember = (id: string) => {
     setTeam((prev) => prev.filter((t) => t.id !== id));
+    apiService.deleteTeamMember(id);
     logActivity(`Menghapus Anggota Tim ID: ${id}`, 'Team CMS');
   };
 
@@ -535,8 +573,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       createdAt: new Date().toISOString(),
     };
     setInquiries((prev) => [newInq, ...prev]);
-
-    // Kirim data secara asinkron ke MySQL API jika online
     apiService.createInquiry(inquiryData);
   };
 
@@ -544,11 +580,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setInquiries((prev) =>
       prev.map((i) => (i.id === id ? { ...i, status } : i))
     );
+    apiService.updateInquiryStatus(id, status);
     logActivity(`Mengubah Status Pesan ID: ${id} -> ${status}`, 'Inquiries');
   };
 
   const deleteInquiry = (id: string) => {
     setInquiries((prev) => prev.filter((i) => i.id !== id));
+    apiService.deleteInquiry(id);
     logActivity(`Menghapus Pesan Masuk ID: ${id}`, 'Inquiries');
   };
 
@@ -560,11 +598,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       uploadedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
     };
     setMediaFiles((prev) => [newFile, ...prev]);
+    apiService.createMedia(newFile);
     logActivity(`Mengunggah Berkas Media WebP: ${newFile.name}`, 'Media Manager');
   };
 
   const deleteMediaFile = (id: string) => {
     setMediaFiles((prev) => prev.filter((f) => f.id !== id));
+    apiService.deleteMedia(id);
     logActivity(`Menghapus Media File ID: ${id}`, 'Media Manager');
   };
 
